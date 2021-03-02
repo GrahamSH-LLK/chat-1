@@ -1,0 +1,158 @@
+<html>
+
+<head>
+	<script src="https://unpkg.com/vue@next">
+	</script>
+
+</head>
+
+<body>
+	<div class="container">
+		<h1>Chat</h1>
+		<input list="channels" v-model="channel" autocomplete="false">
+  <datalist id="channels">
+    <option value="General">
+      <option value="General 2">
+      </datalist>
+
+		<ul id="messages"><li v-for="message of messages"><div class="message" v-if="message.channel === channel"><b>{{ message.username }} </b> {{ message.msg}}<div class="img" v-for="img of message.images"><img :src="img"></div><p class="date">{{ formatDate(message.date || 0)}}</p></div></li></ul>
+    <input type="file" accept="image/*" @change="uploadImage">
+		<form id="form" action="" @click.prevent="send">
+      
+
+			<input autofocus v-model="input" id="input" autocomplete="off" /><button @click="send">Send</button>
+    </form>
+     </div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const Counter = {
+  data() {
+    return {
+      messages: [],
+      input: '',
+      channel: 'General',
+      images: []
+    }
+  },
+  watch: {
+    channel() {
+      if (this.channel.trim() !== this.channel) this.channel = this.channel.replaceAll(' ', '-').trim()
+      if (this.channel.trim() == '') this.channel = 'General';
+    }
+  },
+  methods: {
+    formatDate(date){
+      return date
+    },
+    send() {
+    if (this.input !== '') {
+      socket.emit('chat message', {msg: this.input.replaceAll('/facepalm', '(－‸ლ)').replaceAll('/shrug', '¯\_(ツ)_/¯').replaceAll('/donutarms','(ツ)'), username: username, password: password, date: Date(),channel:this.channel, images: this.images});
+      this.input = '';
+      this.images = [];
+    }
+
+    },
+    uploadImage(e){
+                const image = e.target.files[0];
+                const reader = new FileReader();
+                reader.readAsDataURL(image);
+                reader.onload = e =>{
+                    this.images.push(e.target.result)
+                    console.log(this.images);
+                };
+            }
+        }
+
+  }
+
+
+app = Vue.createApp(Counter).mount('.container')
+
+  var socket = io();
+  const username = localStorage.username || prompt('Username:')
+  localStorage.username = username
+  const password = localStorage.password || prompt('Password:')
+  localStorage.password = password
+
+  var form = document.getElementById('form');
+  var messages = document.getElementById('messages');
+  var input = document.getElementById('input');
+messages.scrollTop = messages.scrollHeight;
+  socket.on('new_message', (msg) => {messages.scrollTop = messages.scrollHeight;
+app.messages.push(msg)})
+
+</script>
+<style>  @import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+button {
+    font-family: Montserrat;
+}
+body {
+    background: #333;
+    color: white;
+    font-family: Montserrat;
+    display: flex;
+}
+.container {
+    margin: auto;
+    max-width: 675px;
+    width: 60rem;
+    background: #222222cf;
+    border-radius: 6px;
+    padding: 10px;
+    height: calc(100vh - 20px);
+}
+li {
+  list-style: none;
+}
+.message {
+    
+    height: max-content;
+    background: #a7a7a738;
+    margin: 1px;
+    border-radius: 3px;
+    padding: 5px;
+    overflow-wrap: anywhere;
+}
+.message:hover{
+    background: #a7a7a747;
+    /* width: auto; */
+}
+input:not([type="file"]) {
+    border-radius: 4px 0px 0px 4px;
+    border: none;
+    height: 3rem;
+    background: #9fffed6e;
+    width: 38.5rem;
+    margin: auto;
+    color: white;
+    font-family: inherit;
+}
+button {
+    height: 3rem;
+    border-radius: 0px 4px 0px 0px;
+    background: #9fffed6e;
+    border: none;
+    cursor: pointer;
+}
+ul#messages {
+    padding-inline-start: 0px;
+    height: 450px;
+    overflow: scroll;
+}
+.date {
+  color: lightgray;
+  font-size: 10px;
+  opacity: 0;
+  padding: 0;
+  height: 0;
+}
+li:hover .date {
+  opacity: 1;
+  height: auto;
+}
+p.date {
+    transition: opacity 0.5s, width 0.5s;
+}
+  </style>
+</body>
+  </html>
