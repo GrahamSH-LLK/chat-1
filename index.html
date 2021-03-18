@@ -1,158 +1,471 @@
 <html>
+  <head>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.6.0/highlight.min.js"></script>
+    <link rel="icon" href="/icon.svg" />
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<script src="https://unpkg.com/vue-search-select@2.9.3/dist/VueSearchSelect.umd.js"></script>
+    <title>Chat</title>
+  </head>
 
-<head>
-	<script src="https://unpkg.com/vue@next">
-	</script>
+  <body>
 
-</head>
+    <div class="app">
 
-<body>
-	<div class="container">
-		<h1>Chat</h1>
-		<input list="channels" v-model="channel" autocomplete="false">
-  <datalist id="channels">
-    <option value="General">
-      <option value="General 2">
-      </datalist>
+      <div class="container">
+        <h1>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            /></svg
+          >Chat
+        </h1>
+        <input
+          list="channels"
+          id="input"
+          v-model="channel"
+          autocomplete="false"
+        /><button
+          v-show="showPin"
+          @click="pin"
+          style="vertical-align: top !important"
+        >
+          <svg
+            style="height: 25px"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </button>
+        <datalist id="channels">
+          <option value="General">General</option>
+          <option value="General-2">General-2</option>
+          <option v-for="pin of pins" :value="pin"></option>
+        </datalist>
 
-		<ul id="messages"><li v-for="message of messages"><div class="message" v-if="message.channel === channel"><b>{{ message.username }} </b> {{ message.msg}}<div class="img" v-for="img of message.images"><img :src="img"></div><p class="date">{{ formatDate(message.date || 0)}}</p></div></li></ul>
-    <input type="file" accept="image/*" @change="uploadImage">
-		<form id="form" action="" @click.prevent="send">
-      
+        <ul id="messages">
+          <li v-for="message of messages" :key="message._id">
+            <div class="message" v-if="message.channel === channel">
+              <b>{{ message.username }} </b> <span v-html="message.msg"></span>
+              <div class="img" v-for="img of message.images">
+                <img :src="img" />
+              </div>
+              <p class="date">{{formatDate(message.date)}}</p>
+            </div>
+          </li>
+        </ul>
+        <label class="upload" for="upload-photo"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            /></svg
+        ></label>
 
-			<input autofocus v-model="input" id="input" autocomplete="off" /><button @click="send">Send</button>
-    </form>
-     </div>
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  const Counter = {
-  data() {
-    return {
-      messages: [],
-      input: '',
-      channel: 'General',
-      images: []
-    }
-  },
-  watch: {
-    channel() {
-      if (this.channel.trim() !== this.channel) this.channel = this.channel.replaceAll(' ', '-').trim()
-      if (this.channel.trim() == '') this.channel = 'General';
-    }
-  },
-  methods: {
-    formatDate(date){
-      return date
-    },
-    send() {
-    if (this.input !== '') {
-      socket.emit('chat message', {msg: this.input.replaceAll('/facepalm', '(－‸ლ)').replaceAll('/shrug', '¯\_(ツ)_/¯').replaceAll('/donutarms','(ツ)'), username: username, password: password, date: Date(),channel:this.channel, images: this.images});
-      this.input = '';
-      this.images = [];
-    }
+        <input
+          id="upload-photo"
+          type="file"
+          accept="image/*"
+          @change="uploadImage"
+        />
+        <form id="form" action="" @submit.prevent="send">
+          <textarea
+            v-on:keyup="enterSend"
+            autofocus
+            v-model="input"
+            autocomplete="off"
+          ></textarea
+          ><button @click="send">Send</button>
+        </form>
+      </div>
+      <ul class="users">
+        <h4>Online users</h4>
+        <li  v-for="user of users">{{ user.name }}</li>
+      </ul>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      (async () => {
+        const Counter = {
+          data() {
+            return {
+              messages: [],
+              input: "",
+              channel: "General",
+              images: [],
+              pins: [],
+              showPin: true,
+              users: [],
+            };
+          },
+          watch: {
+            channel() {
+              if (this.channel.trim() !== this.channel)
+                this.channel = this.channel.replaceAll(" ", "-").trim();
+              if (this.channel.trim() == "") this.channel = "General";
+              if (this.pins.includes(this.channel)) this.showPin = false;
+              else this.showPin = true;
+            },
+          },
+          methods: {
+            pin() {
+              this.pins.push(this.channel);
+              localStorage.pins = JSON.stringify(this.pins);
+            },
+            formatDate(date) {
+              newDate = new Date(date);
+              return (
+                newDate.toLocaleDateString("en-US") +
+                " " +
+                newDate.toLocaleTimeString("en-us")
+              );
+            },
+            enterSend(e) {
+              if (e.keyCode === 13 && !e.shiftKey) {
+                this.send();
+              }
+            },
+            send() {
+              if (this.input !== "") {
+                socket.emit("chat message", {
+                  msg: this.input
+                    .replaceAll("/facepalm", "(－‸ლ)")
+                    .replaceAll("/shrug", "¯\_(ツ)_/¯")
+                    .replaceAll("/donutarms", "(ツ)")
+                    .replaceAll('/me',username),
+                  username: username,
+                  password: password,
+                  date: Date(),
+                  channel: this.channel,
+                  images: this.images,
+                });
+                this.input = "";
+                this.images = [];
+              }
+            },
+            uploadImage(e) {
+              const image = e.target.files[0];
+              const reader = new FileReader();
+              reader.readAsDataURL(image);
+              reader.onload = (e) => {
+                this.images.push(e.target.result);
+                console.log(this.images);
+              };
+            },
+          },
+        };
 
-    },
-    uploadImage(e){
-                const image = e.target.files[0];
-                const reader = new FileReader();
-                reader.readAsDataURL(image);
-                reader.onload = e =>{
-                    this.images.push(e.target.result)
-                    console.log(this.images);
-                };
-            }
+        app = Vue.createApp(Counter).mount(".app");
+
+        app.pins = JSON.parse(localStorage.pins|| '[]') ;
+        var socket = io();
+        async function getUsername() {
+          const { value: pw } = await Swal.fire({
+            title: "Enter your username",
+            input: "text",
+            inputLabel: "Username",
+            inputPlaceholder: "Enter your username",
+            inputAttributes: {
+              autocapitalize: "off",
+              autocorrect: "off",
+            },
+          });
+          return await pw;
         }
 
-  }
+        const username = localStorage.username || await getUsername()
+        localStorage.username = username;
+        async function getPassword() {
+          const { value: pw } = await Swal.fire({
+            title: "Enter your password",
+            input: "password",
+            inputLabel: "Password",
+            inputPlaceholder: "Enter your password",
+            inputAttributes: {
+              autocapitalize: "off",
+              autocorrect: "off",
+            },
+          });
+          return await pw;
+        }
 
+        const password = localStorage.password || await getPassword();
 
-app = Vue.createApp(Counter).mount('.container')
+        if (password) {
+          localStorage.password = password;
+        }
 
-  var socket = io();
-  const username = localStorage.username || prompt('Username:')
-  localStorage.username = username
-  const password = localStorage.password || prompt('Password:')
-  localStorage.password = password
+        var messages = document.getElementById("messages");
+        messages.scrollTop = messages.scrollHeight;
+        var music = new Audio("/ping.mp3");
+        music.volume = 0.1;
+        socket.on("new_message", (msg) => {
+          console.log('New message')
+          app.messages.push(msg);
+          if (msg.channel === app.channel && !msg.old) {
+            music.play();
+          }
+          setTimeout(function () {
+            messages.scrollTop = messages.scrollHeight;
+            hljs.highlightAll();
+          }, 10);
+        });
+        socket.on("connect", function () {
+          socket.emit("login", { name: username });
+        });
 
-  var form = document.getElementById('form');
-  var messages = document.getElementById('messages');
-  var input = document.getElementById('input');
-messages.scrollTop = messages.scrollHeight;
-  socket.on('new_message', (msg) => {messages.scrollTop = messages.scrollHeight;
-app.messages.push(msg)})
+        socket.on("users", function (users) {
+          app.users = users;
+        });
+      })();
+    </script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Montserrat&display=swap");
+      body {
+        margin: 0;
+      }
+      button {
+        font-family: Montserrat;
+      }
+      .app {
+        background: #333;
+        color: white;
+        font-family: Montserrat;
+        display: flex;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        margin: auto;
+        max-width: 675px;
+        width: 60rem;
+        background: #0005;
+        padding: 40px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        padding: 10px;
+        height: calc(100vh - 20px);
+      }
+      li {
+        list-style: none;
+      }
 
-</script>
-<style>  @import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
-button {
-    font-family: Montserrat;
-}
-body {
-    background: #333;
-    color: white;
-    font-family: Montserrat;
-    display: flex;
-}
-.container {
-    margin: auto;
-    max-width: 675px;
-    width: 60rem;
-    background: #222222cf;
-    border-radius: 6px;
+      .message {
+        list-style: none;
+        padding: 15px;
+        background: #0001;
+        border-radius: 2px;
+        transition: background 0.3s ease, padding 0.3s ease;
+        overflow-wrap: anywhere;
+      }
+      .message:hover {
+        background: #0002;
+        padding-top: 20px;
+        padding-bottom: 20px;
+      }
+      input:not([type="file"]) {
+        border-radius: 4px 0px 0px 4px;
+        border: none;
+        height: 3rem;
+        background: #9fffed6e;
+        width: 36.5rem;
+        margin: auto;
+        color: white;
+        font-family: inherit;
+      }
+      textarea {
+        border: none;
+        height: 3rem;
+        background: #9fffed6e;
+        width: 36.5rem;
+        margin: auto;
+        color: white;
+        font-family: inherit;
+        vertical-align: text-top;
+        font-size: 15px;
+      }
+
+      button {
+        height: 3rem;
+        border-radius: 0px 4px 0px 0px;
+        background: #9fffed6e;
+        border: none;
+        cursor: pointer;
+        vertical-align: text-top;
+      }
+      ul#messages {
+        padding-inline-start: 0px;
+        height: 450px;
+        overflow-y: scroll;
+        width: 650px;
+        overflow-x: hidden;
+      }
+      .date {
+        color: lightgray;
+        font-size: 10px;
+        opacity: 0;
+        padding: 0;
+        height: 0;
+      }
+      li:hover .date {
+        opacity: 1;
+        height: auto;
+      }
+      p.date {
+        transition: opacity 0.5s, width 0.5s;
+      }
+      .upload {
+        cursor: pointer;
+        display: inline-block;
+        /* Style as you please, it will become the visible UI component. */
+        vertical-align: middle;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+        background: #9fffed6e;
+        height: 3rem;
+      }
+
+      #upload-photo {
+        opacity: 0;
+        position: absolute;
+        z-index: -1;
+      }
+      .upload svg {
+        height: 24px;
+        transform: translateY(50%);
+      }
+      form {
+        display: inline;
+        vertical-align: middle;
+      }
+      .hljs * {
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .hljs {
+        display: block;
+        overflow-x: auto;
+        padding: 0.5em;
+        border-radius: 4px;
+        color: var(--header-secondary);
+        -webkit-text-size-adjust: none;
+        -moz-text-size-adjust: none;
+        -ms-text-size-adjust: none;
+        text-size-adjust: none;
+      }
+      .hljs-comment,
+      .hljs-quote {
+        color: var(--interactive-muted);
+      }
+      .hljs-addition,
+      .hljs-keyword,
+      .hljs-selector-tag {
+        color: #859900;
+      }
+      .hljs-doctag,
+      .hljs-literal,
+      .hljs-meta .hljs-meta-string,
+      .hljs-number,
+      .hljs-regexp,
+      .hljs-string {
+        color: #2aa198;
+      }
+      .hljs-name,
+      .hljs-section,
+      .hljs-selector-class,
+      .hljs-selector-id,
+      .hljs-title {
+        color: #268bd2;
+      }
+      .hljs-attr,
+      .hljs-attribute,
+      .hljs-class .hljs-title,
+      .hljs-template-variable,
+      .hljs-type,
+      .hljs-variable {
+        color: #b58900;
+      }
+      .hljs-bullet,
+      .hljs-link,
+      .hljs-meta,
+      .hljs-meta .hljs-keyword,
+      .hljs-selector-attr,
+      .hljs-selector-pseudo,
+      .hljs-subst,
+      .hljs-symbol {
+        color: #cb4b16;
+      }
+      .hljs-built_in,
+      .hljs-deletion {
+        color: #dc322f;
+      }
+      .hljs-formula {
+        background: #073642;
+      }
+      .hljs-emphasis {
+        font-style: italic;
+      }
+      .hljs-strong {
+        font-weight: 700;
+      }
+      code {
+        font-family: monospace;
+        background: rgb(47, 49, 54);
+        border: 1px solid #202225;
+      }
+      .message img {
+        max-width: 35rem;
+        height: auto;
+      }
+      h1 svg {
+        height: 40px;
+        vertical-align: bottom;
+      }
+      ul.users {
+    right: 0;
+    background: #0005;
+    height: 97vh;
     padding: 10px;
-    height: calc(100vh - 20px);
+    margin: 0;
+    position: absolute;
+    border-radius: 2px;
 }
-li {
-  list-style: none;
-}
-.message {
-    
-    height: max-content;
-    background: #a7a7a738;
-    margin: 1px;
-    border-radius: 3px;
-    padding: 5px;
-    overflow-wrap: anywhere;
-}
-.message:hover{
-    background: #a7a7a747;
-    /* width: auto; */
-}
-input:not([type="file"]) {
-    border-radius: 4px 0px 0px 4px;
-    border: none;
-    height: 3rem;
-    background: #9fffed6e;
-    width: 38.5rem;
-    margin: auto;
-    color: white;
-    font-family: inherit;
-}
-button {
-    height: 3rem;
-    border-radius: 0px 4px 0px 0px;
-    background: #9fffed6e;
-    border: none;
+span.d-spoiler {
+    padding: 1px;
+    color: #0000;
+    transition: color .75s;
+    background: #333;
     cursor: pointer;
+    border-radius: 1px;
 }
-ul#messages {
-    padding-inline-start: 0px;
-    height: 450px;
-    overflow: scroll;
+
+span.d-spoiler:hover {
+    color: unset;
 }
-.date {
-  color: lightgray;
-  font-size: 10px;
-  opacity: 0;
-  padding: 0;
-  height: 0;
-}
-li:hover .date {
-  opacity: 1;
-  height: auto;
-}
-p.date {
-    transition: opacity 0.5s, width 0.5s;
-}
-  </style>
-</body>
-  </html>
+    </style>
+  </body>
+</html>
