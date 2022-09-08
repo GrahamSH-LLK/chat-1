@@ -8,9 +8,7 @@
   </head>
 
   <body>
-
     <div class="app">
-
       <div class="container">
         <h1>
           <svg
@@ -60,7 +58,11 @@
 
         <ul id="messages">
           <li v-for="message of messages" :key="message._id">
-            <div class="message" v-if="message.channel === channel">
+            <div
+              class="message"
+              v-if="message.channel === channel"
+              :style="{'background-color': isRonan(message.username)}"
+            >
               <b>{{ message.username }} </b> <span v-html="message.msg"></span>
               <div class="img" v-for="img of message.images">
                 <img :src="img" />
@@ -102,7 +104,7 @@
       </div>
       <ul class="users">
         <h4>Online users</h4>
-        <li  v-for="user of users">{{ user.name }}</li>
+        <li v-for="user of users">{{ user.name }}</li>
       </ul>
     </div>
     <script src="/socket.io/socket.io.js"></script>
@@ -134,6 +136,10 @@
               this.pins.push(this.channel);
               localStorage.pins = JSON.stringify(this.pins);
             },
+            isRonan(un) {
+              console.log(un)
+              return un == "ronan" ?'red': '';
+            },
             formatDate(date) {
               newDate = new Date(date);
               return (
@@ -154,7 +160,7 @@
                     .replaceAll("/facepalm", "(－‸ლ)")
                     .replaceAll("/shrug", "¯\_(ツ)_/¯")
                     .replaceAll("/donutarms", "(ツ)")
-                    .replaceAll('/me',username),
+                    .replaceAll("/me", username),
                   username: username,
                   password: password,
                   date: Date(),
@@ -179,7 +185,7 @@
 
         app = Vue.createApp(Counter).mount(".app");
 
-        app.pins = JSON.parse(localStorage.pins|| '[]') ;
+        app.pins = JSON.parse(localStorage.pins || "[]");
         var socket = io();
         async function getUsername() {
           const { value: pw } = await Swal.fire({
@@ -195,7 +201,7 @@
           return await pw;
         }
 
-        const username = localStorage.username || await getUsername()
+        const username = localStorage.username || (await getUsername());
         localStorage.username = username;
         async function getPassword() {
           const { value: pw } = await Swal.fire({
@@ -211,7 +217,7 @@
           return await pw;
         }
 
-        const password = localStorage.password || await getPassword();
+        const password = localStorage.password || (await getPassword());
 
         if (password) {
           localStorage.password = password;
@@ -222,7 +228,7 @@
         var music = new Audio("/ping.mp3");
         music.volume = 0.1;
         socket.on("new_message", (msg) => {
-          console.log('New message')
+          console.log("New message");
           app.messages.push(msg);
           if (msg.channel === app.channel && !msg.old) {
             music.play();
@@ -290,7 +296,7 @@
         border-radius: 4px 0px 0px 4px;
         border: none;
         height: 3rem;
-        background: #9fffed6e;
+        background: #2563eb6e;
         width: 36.5rem;
         margin: auto;
         color: white;
@@ -299,7 +305,7 @@
       textarea {
         border: none;
         height: 3rem;
-        background: #9fffed6e;
+        background: #2563eb6e;
         width: 36.5rem;
         margin: auto;
         color: white;
@@ -311,7 +317,7 @@
       button {
         height: 3rem;
         border-radius: 0px 4px 0px 0px;
-        background: #9fffed6e;
+        background: #2563eb6e;
         border: none;
         cursor: pointer;
         vertical-align: text-top;
@@ -344,7 +350,7 @@
         vertical-align: middle;
         border-top-left-radius: 4px;
         border-bottom-left-radius: 4px;
-        background: #9fffed6e;
+        background: #2563eb6e;
         height: 3rem;
       }
 
@@ -445,26 +451,26 @@
         vertical-align: bottom;
       }
       ul.users {
-    right: 0;
-    background: #0005;
-    height: 97vh;
-    padding: 10px;
-    margin: 0;
-    position: absolute;
-    border-radius: 2px;
-}
-span.d-spoiler {
-    padding: 1px;
-    color: #0000;
-    transition: color .75s;
-    background: #333;
-    cursor: pointer;
-    border-radius: 1px;
-}
+        right: 0;
+        background: #0005;
+        height: 97vh;
+        padding: 10px;
+        margin: 0;
+        position: absolute;
+        border-radius: 2px;
+      }
+      span.d-spoiler {
+        padding: 1px;
+        color: #0000;
+        transition: color 0.75s;
+        background: #333;
+        cursor: pointer;
+        border-radius: 1px;
+      }
 
-span.d-spoiler:hover {
-    color: unset;
-}
+      span.d-spoiler:hover {
+        color: unset;
+      }
     </style>
   </body>
 </html>
