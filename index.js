@@ -1,12 +1,18 @@
-require("dotenv").config();
-const app = require("express")();
-const server = require("http").createServer(app);
-const io = require("socket.io")(server);
-const imgbbUploader = require("imgbb-uploader");
-const emoji = require("discord-emoji-converter");
-const monk = require("monk");
+import {config} from "dotenv";
+import express from 'express'
+const app = express()
+import http from 'http'
+const server = http.createServer(app);
+import {Server, Socket} from 'socket.io'
+const io = Server(server);
+import imgbbUploader from "imgbb-uploader";
+import emoji from "discord-emoji-converter";
+import monk from "monk";
 const db = monk(process.env.DB);
-const { toHTML } = require("discord-markdown");
+import pkg from 'discord-markdown';
+const { toHTML } = pkg;
+import dice from 'dnd-dice-complete-set'
+console.log(dice.rollAnySidedDice(2))
 var users = [];
 (async () => {
   const messages = db.get("messages");
@@ -14,24 +20,28 @@ var users = [];
   io.on("connection", async (socket) => {
     io.emit("users", users);
     socket.on("disconnect", (reason) => {
-      users = users.filter(function (value, index, arr) {
+      users = users.filter(function(value, index, arr) {
         return value.id !== socket.id;
       });
       io.emit("users", users);
     });
 
-    socket.on("login", function (user) {
+    socket.on("login", async function(user) {
       users.push({ name: user.name, id: socket.id });
       io.emit("users", users);
-    });
-
-    allMessages = await messages.find();
+          allMessages = await messages.find();
 
     for (message of allMessages) {
       message.old = true;
+socket.emit('new_message', message);
 
-      socket.on("chat message", async (msg) => {
-        try {
+
+    }
+
+    });
+    socket.on("chat message", async (msg) => {
+      console.log('hiii')
+      try {
 
         if (msg.password === process.env.PASS) {
 
@@ -53,11 +63,11 @@ var users = [];
           io.emit("new_message", msg);
           messages.insert(msg);
         }
-        } catch (err) {
-          console.error(err)
-        }
-      });
-    }
+      } catch (err) {
+        console.error(err)
+      }
+    });
+
   });
   app.get("/", (req, res) => {
     res.sendFile(`${__dirname}/index.html`);

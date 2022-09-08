@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,11 +13,12 @@
   "dependencies": {
     "discord-emoji-converter": "^1.0.0",
     "discord-markdown": "^2.4.2",
+    "dnd-dice-complete-set": "^1.0.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "imgbb-uploader": "^1.3.0",
     "jsoning": "^0.8.15",
     "monk": "^7.3.3",
-    "socket.io": "^3.1.2"
+    "socket.io": "^4.5.2"
   }
 }
